@@ -93,7 +93,7 @@
  #define RESWIRECLOCK ///< keeps compiler happy
 #endif
 
-#if defined(SPI_HAS_TRANSACTION)
+#if defined(SPI_HAS_TRANSACTION) && !defined(ADAFRUIT_SSD1306_NO_SPI)
  #define SPI_TRANSACTION_START spi->beginTransaction(spiSettings) ///< Pre-SPI
  #define SPI_TRANSACTION_END   spi->endTransaction()              ///< Post-SPI
 #else // SPI transactions likewise not present in older Arduino SPI lib
@@ -109,6 +109,9 @@
 // issuing data to the display, then restored to the default rate afterward
 // so other I2C device types still work).  All of these are encapsulated
 // in the TRANSACTION_* macros.
+
+
+#ifndef ADAFRUIT_SSD1306_NO_SPI
 
 // Check first if Wire, then hardware SPI, then soft SPI:
 #define TRANSACTION_START   \
@@ -129,6 +132,16 @@
      SPI_TRANSACTION_END;   \
    }                        \
  } ///< Wire, SPI or bitbang transfer end
+#else
+
+// Check first if Wire, then hardware SPI, then soft SPI:
+#define TRANSACTION_START   \
+   SETWIRECLOCK;            \
+  ///< Wire, SPI or bitbang transfer setup
+#define TRANSACTION_END     \
+   RESWIRECLOCK;            \
+  ///< Wire, SPI or bitbang transfer end
+#endif
 
 // CONSTRUCTORS, DESTRUCTOR ------------------------------------------------
 
@@ -167,7 +180,11 @@
 */
 Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi,
   int8_t rst_pin, uint32_t clkDuring, uint32_t clkAfter) :
-  Adafruit_GFX(w, h), spi(NULL), wire(twi ? twi : &Wire), buffer(NULL),
+  Adafruit_GFX(w, h),
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  spi(NULL),
+#endif
+  wire(twi ? twi : &Wire), buffer(NULL),
   mosiPin(-1), clkPin(-1), dcPin(-1), csPin(-1), rstPin(rst_pin),
   wireClk(clkDuring), restoreClk(clkAfter) {
 }
@@ -201,7 +218,11 @@ Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi,
 */
 Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
   int8_t mosi_pin, int8_t sclk_pin, int8_t dc_pin, int8_t rst_pin,
-  int8_t cs_pin) : Adafruit_GFX(w, h), spi(NULL), wire(NULL), buffer(NULL),
+  int8_t cs_pin) : Adafruit_GFX(w, h),
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  spi(NULL),
+#endif
+  wire(NULL), buffer(NULL),
   mosiPin(mosi_pin), clkPin(sclk_pin), dcPin(dc_pin), csPin(cs_pin),
   rstPin(rst_pin) {
 }
@@ -232,6 +253,7 @@ Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
     @note   Call the object's begin() function before use -- buffer
             allocation is performed there!
 */
+#ifndef ADAFRUIT_SSD1306_NO_SPI
 Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi,
   int8_t dc_pin, int8_t rst_pin, int8_t cs_pin, uint32_t bitrate) :
   Adafruit_GFX(w, h), spi(spi ? spi : &SPI), wire(NULL), buffer(NULL),
@@ -240,6 +262,7 @@ Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi,
   spiSettings = SPISettings(bitrate, MSBFIRST, SPI_MODE0);
 #endif
 }
+#endif
 
 /*!
     @brief  DEPRECATED constructor for SPI SSD1306 displays, using software
@@ -269,7 +292,11 @@ Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi,
 */
 Adafruit_SSD1306::Adafruit_SSD1306(int8_t mosi_pin, int8_t sclk_pin,
   int8_t dc_pin, int8_t rst_pin, int8_t cs_pin) :
-  Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT), spi(NULL), wire(NULL),
+  Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT),
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  spi(NULL),
+#endif
+  wire(NULL),
   buffer(NULL), mosiPin(mosi_pin), clkPin(sclk_pin), dcPin(dc_pin),
   csPin(cs_pin), rstPin(rst_pin) {
 }
@@ -295,14 +322,16 @@ Adafruit_SSD1306::Adafruit_SSD1306(int8_t mosi_pin, int8_t sclk_pin,
     @note   Call the object's begin() function before use -- buffer
             allocation is performed there!
 */
+#ifndef ADAFRUIT_SSD1306_NO_SPI
 Adafruit_SSD1306::Adafruit_SSD1306(int8_t dc_pin, int8_t rst_pin,
   int8_t cs_pin) : Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT),
-  spi(&SPI), wire(NULL), buffer(NULL), mosiPin(-1), clkPin(-1),
+  spi(&SPI),   wire(NULL), buffer(NULL), mosiPin(-1), clkPin(-1),
   dcPin(dc_pin), csPin(cs_pin), rstPin(rst_pin) {
 #ifdef SPI_HAS_TRANSACTION
   spiSettings = SPISettings(8000000, MSBFIRST, SPI_MODE0);
 #endif
 }
+#endif
 
 /*!
     @brief  DEPRECATED constructor for I2C SSD1306 displays. Provided for
@@ -319,11 +348,16 @@ Adafruit_SSD1306::Adafruit_SSD1306(int8_t dc_pin, int8_t rst_pin,
             allocation is performed there!
 */
 Adafruit_SSD1306::Adafruit_SSD1306(int8_t rst_pin) :
-  Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT), spi(NULL), wire(&Wire),
+  Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT),
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  spi(NULL),
+#endif
+  wire(&Wire),
   buffer(NULL), mosiPin(-1), clkPin(-1), dcPin(-1), csPin(-1),
   rstPin(rst_pin) {
 }
 
+#ifndef ADAFRUIT_SSD1306_NO_DESTRUCTOR
 /*!
     @brief  Destructor for Adafruit_SSD1306 object.
 */
@@ -333,15 +367,19 @@ Adafruit_SSD1306::~Adafruit_SSD1306(void) {
     buffer = NULL;
   }
 }
+#endif
 
 // LOW-LEVEL UTILS ---------------------------------------------------------
 
 // Issue single byte out SPI, either soft or hardware as appropriate.
 // SPI transaction/selection must be performed in calling function.
 inline void Adafruit_SSD1306::SPIwrite(uint8_t d) {
+#ifndef ADAFRUIT_SSD1306_NO_SPI
   if(spi) {
     (void)spi->transfer(d);
-  } else {
+  } else
+#endif
+  {
     for(uint8_t bit = 0x80; bit; bit >>= 1) {
 #ifdef HAVE_PORTREG
       if(d & bit) *mosiPort |=  mosiPinMask;
@@ -470,7 +508,10 @@ boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
   vccstate = vcs;
 
   // Setup pin directions
-  if(wire) { // Using I2C
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  if(wire)
+#endif
+  { // Using I2C
     // If I2C address is unspecified, use default
     // (0x3C for 32-pixel-tall displays, 0x3D for all others).
     i2caddr = addr ? addr : ((HEIGHT == 32) ? 0x3C : 0x3D);
@@ -479,7 +520,9 @@ boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
     // can accept different SDA/SCL pins, or if two SSD1306 instances
     // with different addresses -- only a single begin() is needed).
     if(periphBegin) wire->begin();
-  } else { // Using one of the SPI modes, either soft or hardware
+  }
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+  else { // Using one of the SPI modes, either soft or hardware
     pinMode(dcPin, OUTPUT); // Set data/command pin as output
     pinMode(csPin, OUTPUT); // Same for chip select
 #ifdef HAVE_PORTREG
@@ -506,6 +549,7 @@ boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
 #endif
     }
   }
+#endif
 
   // Reset SSD1306 if requested and reset pin specified in constructor
   if(reset && (rstPin >= 0)) {

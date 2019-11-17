@@ -117,7 +117,7 @@
  #define SSD1306_LCDHEIGHT  16 ///< DEPRECATED: height w/SSD1306_96_16 defined
 #endif
 
-/*! 
+/*!
     @brief  Class that stores state and functions for interacting with
             SSD1306 OLED displays.
 */
@@ -137,7 +137,9 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
   Adafruit_SSD1306(int8_t dc_pin, int8_t rst_pin, int8_t cs_pin);
   Adafruit_SSD1306(int8_t rst_pin = -1);
 
+#ifndef ADAFRUIT_SSD1306_NO_DESTRUCTOR
   ~Adafruit_SSD1306(void);
+#endif
 
   boolean      begin(uint8_t switchvcc=SSD1306_SWITCHCAPVCC,
                  uint8_t i2caddr=0, boolean reset=true,
@@ -167,7 +169,9 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
   void         ssd1306_command1(uint8_t c);
   void         ssd1306_commandList(const uint8_t *c, uint8_t n);
 
+#ifndef ADAFRUIT_SSD1306_NO_SPI
   SPIClass    *spi;
+#endif
   TwoWire     *wire;
   uint8_t     *buffer;
   int8_t       i2caddr, vccstate, page_end;
@@ -176,8 +180,10 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
   PortReg     *mosiPort   , *clkPort   , *dcPort   , *csPort;
   PortMask     mosiPinMask,  clkPinMask,  dcPinMask,  csPinMask;
 #endif
+#ifndef ADAFRUIT_SSD1306_NO_SPI
 #if defined(SPI_HAS_TRANSACTION)
   SPISettings  spiSettings;
+#endif
 #endif
 #if ARDUINO >= 157
   uint32_t     wireClk;    // Wire speed for SSD1306 transfers
