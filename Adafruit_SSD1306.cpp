@@ -178,8 +178,7 @@
     @note   Call the object's begin() function before use -- buffer
             allocation is performed there!
 */
-Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi,
-  int8_t rst_pin, uint32_t clkDuring, uint32_t clkAfter) :
+Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi, int8_t rst_pin, uint32_t clkDuring, uint32_t clkAfter) :
   Adafruit_GFX(w, h),
 #ifndef ADAFRUIT_SSD1306_NO_SPI
   spi(NULL),
@@ -187,6 +186,12 @@ Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi,
   wire(twi ? twi : &Wire), buffer(NULL),
   mosiPin(-1), clkPin(-1), dcPin(-1), csPin(-1), rstPin(rst_pin),
   wireClk(clkDuring), restoreClk(clkAfter) {
+}
+
+Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, uint8_t i2cAddress, TwoWire *twi, int8_t rst_pin, uint32_t clkDuring, uint32_t clkAfter) :
+    Adafruit_SSD1306(w, h, twi, rst_pin, clkDuring, clkAfter)
+{
+    i2caddr = i2cAddress;
 }
 
 /*!
@@ -488,8 +493,7 @@ void Adafruit_SSD1306::ssd1306_command(uint8_t c) {
             proceeding.
     @note   MUST call this function before any drawing or updates!
 */
-boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
-  boolean periphBegin) {
+boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset, boolean periphBegin) {
 
   if((!buffer) && !(buffer = (uint8_t *)malloc(WIDTH * ((HEIGHT + 7) / 8))))
     return false;
@@ -627,6 +631,11 @@ boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
   TRANSACTION_END
 
   return true; // Success
+}
+
+boolean Adafruit_SSD1306::begin(uint8_t switchvcc, boolean reset, boolean periphBegin)
+{
+    return begin(switchvcc, i2caddr, reset, periphBegin);
 }
 
 // DRAWING FUNCTIONS -------------------------------------------------------
