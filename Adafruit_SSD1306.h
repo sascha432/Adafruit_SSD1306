@@ -302,18 +302,11 @@ typedef uint32_t PortMask;
 */
 class Adafruit_SSD1306 : public Adafruit_GFX {
 public:
-    Adafruit_SSD1306(uint8_t w, uint8_t h, uint8_t i2cAddress,
-#if ADAFRUIT_SSD1306_FIXED_WIRE == 0
-        TwoWire *twi,
+    Adafruit_SSD1306(
+#if ADAFRUIT_SSD1306_FIXED_SIZE == 0
+        uint8_t w, uint8_t h,
 #endif
-        int8_t rst_pin
-#if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
-        ,
-        uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL
-#endif
-    );
-
-    Adafruit_SSD1306(uint8_t w, uint8_t h,
+        uint8_t i2cAddress,
 #if ADAFRUIT_SSD1306_FIXED_WIRE == 0
         TwoWire *twi,
 #endif
@@ -333,8 +326,13 @@ public:
     ~Adafruit_SSD1306(void);
 #endif
 
-    boolean begin(uint8_t switchvcc, uint8_t i2caddr, boolean reset = true, boolean periphBegin = true);
-    boolean begin(uint8_t switchvcc, boolean reset = true, boolean periphBegin = true);
+    bool begin(
+#if ADAFRUIT_SSD1306_FIXED_VCCSTATE == 0
+        uint8_t switchvcc,
+#endif
+        uint8_t i2caddr, boolean reset = true, boolean periphBegin = true
+    );
+
     void display(void);
     void clearDisplay(void);
     void invertDisplay(boolean i);
@@ -348,7 +346,7 @@ public:
     void startscrolldiagleft(uint8_t start, uint8_t stop);
     void stopscroll(void);
     void ssd1306_command(uint8_t c);
-    boolean getPixel(int16_t x, int16_t y);
+    bool getPixel(int16_t x, int16_t y);
     uint8_t *getBuffer(void);
 
 private:
@@ -445,17 +443,25 @@ private:
 #endif
 };
 
-inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
+inline Adafruit_SSD1306::Adafruit_SSD1306(
+#if ADAFRUIT_SSD1306_FIXED_SIZE == 0
+    uint8_t w, uint8_t h,
+#endif
 #if ADAFRUIT_SSD1306_FIXED_WIRE == 0
     TwoWire *twi,
 #endif
+    uint8_t i2cAddress,
     int8_t rst_pin
 #if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
     ,
     uint32_t clkDuring, uint32_t clkAfter
 #endif
     ) :
+#if ADAFRUIT_SSD1306_FIXED_SIZE
+    Adafruit_GFX(__width(), __height()),
+#else
     Adafruit_GFX(w, h),
+#endif
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     spi(NULL),
 #endif
@@ -465,6 +471,7 @@ inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
 #if ADAFRUIT_SSD1306_FIXED_SIZE == 0
     buffer(NULL),
 #endif
+    i2caddr(i2cAddress),
     rstPin(rst_pin)
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     ,
@@ -477,22 +484,23 @@ inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
 {
 }
 
-#if ADAFRUIT_SSD1306_NO_DESTRUCTOR == 0 && ADAFRUIT_SSD1306_FIXED_SIZE == 0
+#if ADAFRUIT_SSD1306_NO_DESTRUCTOR == 0
 inline Adafruit_SSD1306::~Adafruit_SSD1306(void)
 {
+#    if ADAFRUIT_SSD1306_FIXED_SIZE == 0
     if (buffer) {
         free(buffer);
         buffer = NULL;
     }
+#    endif
 }
 #endif
 
-inline boolean Adafruit_SSD1306::begin(uint8_t switchvcc, boolean reset, boolean periphBegin)
-{
-    return begin(switchvcc, i2caddr, reset, periphBegin);
-}
-
-inline boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset, boolean periphBegin)
+inline bool Adafruit_SSD1306::begin(
+#if ADAFRUIT_SSD1306_FIXED_VCCSTATE == 0
+    uint8_t vcs,
+#endif
+    uint8_t addr, bool reset, bool periphBegin)
 {
 #if ADAFRUIT_SSD1306_FIXED_SIZE == 0
 
@@ -500,6 +508,11 @@ inline boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
         return false;
     }
 
+#endif
+
+    i2caddr = addr;
+#if ADAFRUIT_SSD1306_FIXED_VCCSTATE == 0
+    vccstate = vcs;
 #endif
 
     clearDisplay();
@@ -513,15 +526,12 @@ inline boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
     }
 #endif
 
-#if ADAFRUIT_SSD1306_FIXED_VCCSTATE == 0
-    vccstate = vcs;
-#endif
-
     // Setup pin directions
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     if (__hasWire())
 #endif
-    { // Using I2C
+    {
+        // Using I2C
         // TwoWire begin() function might be already performed by the calling
         // function if it has unusual circumstances (e.g. TWI variants that
         // can accept different SDA/SCL pins, or if two SSD1306 instances
