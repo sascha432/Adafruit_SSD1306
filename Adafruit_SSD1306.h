@@ -107,8 +107,8 @@
 #endif
 
 // remove color SSD1306_INVERSE
-#ifndef SSD1306_INVERSE_HAVE_INVERSE
-#    define SSD1306_INVERSE_HAVE_INVERSE 0
+#ifndef ADAFRUIT_SSD1306_HAVE_INVERSE
+#    define ADAFRUIT_SSD1306_HAVE_INVERSE 0
 #endif
 
 #if defined(ARDUINO_STM32_FEATHER)
@@ -173,14 +173,22 @@ typedef uint32_t PortMask;
 /// They can be disabled by predefining this macro before including the Adafruit header
 /// client code will then need to be modified to use the scoped enum values directly
 #ifndef NO_ADAFRUIT_SSD1306_COLOR_COMPATIBILITY
-#    define BLACK   SSD1306_BLACK ///< Draw 'off' pixels
-#    define WHITE   SSD1306_WHITE ///< Draw 'on' pixels
-#    define INVERSE SSD1306_INVERSE ///< Invert pixels
+#    define BLACK SSD1306_BLACK ///< Draw 'off' pixels
+#    define WHITE SSD1306_WHITE ///< Draw 'on' pixels
+#    if ADAFRUIT_SSD1306_HAVE_INVERSE
+#        define INVERSE SSD1306_INVERSE ///< Invert pixels
+#    else
+#        define INVERSE SSD1306_BLACK
+#    endif
 #endif
 /// fit into the SSD1306_ naming scheme
-#define SSD1306_BLACK   0 ///< Draw 'off' pixels
-#define SSD1306_WHITE   1 ///< Draw 'on' pixels
-#define SSD1306_INVERSE 2 ///< Invert pixels
+#define SSD1306_BLACK 0 ///< Draw 'off' pixels
+#define SSD1306_WHITE 1 ///< Draw 'on' pixels
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
+#    define SSD1306_INVERSE 2 ///< Invert pixels
+#else
+#    define SSD1306_INVERSE 0
+#endif
 
 #define SSD1306_MEMORYMODE          0x20 ///< See datasheet
 #define SSD1306_COLUMNADDR          0x21 ///< See datasheet
@@ -244,6 +252,10 @@ typedef uint32_t PortMask;
 #    define SETWIRECLOCK __wire()->setClock(wireClk) ///< Set before I2C transfer
 #    define RESWIRECLOCK __wire()->setClock(restoreClk) ///< Restore after I2C xfer
 #else // setClock() is not present in older Arduino Wire lib (or WICED)
+#    if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+#        undef ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+#        define ADAFRUIT_SSD1306_WIRE_SET_CLOCK 0
+#    endif
 #    define SETWIRECLOCK ///< Dummy stand-in define
 #    define RESWIRECLOCK ///< keeps compiler happy
 #endif
@@ -252,7 +264,7 @@ typedef uint32_t PortMask;
 
 // Check first if Wire, then hardware SPI, then soft SPI:
 #    define TRANSACTION_START          \
-        if (wire) {                    \
+        if (__hasWire()) {             \
             SETWIRECLOCK;              \
         } else {                       \
             if (spi) {                 \
@@ -261,7 +273,7 @@ typedef uint32_t PortMask;
             SSD1306_SELECT;            \
         } ///< Wire, SPI or bitbang transfer setup
 #    define TRANSACTION_END          \
-        if (wire) {                  \
+        if (__hasWire()) {           \
             RESWIRECLOCK;            \
         } else {                     \
             SSD1306_DESELECT;        \
@@ -280,25 +292,42 @@ typedef uint32_t PortMask;
         ///< Wire, SPI or bitbang transfer end
 #endif
 
+#ifndef ADAFRUIT_SSD1306_DEFAULT_I2C_ADDRESS
+#    define ADAFRUIT_SSD1306_DEFAULT_I2C_ADDRESS 0x3c
+#endif
+
 /*!
     @brief  Class that stores state and functions for interacting with
             SSD1306 OLED displays.
 */
 class Adafruit_SSD1306 : public Adafruit_GFX {
 public:
-    // NEW CONSTRUCTORS -- recommended for new projects
-    Adafruit_SSD1306(uint8_t w, uint8_t h, uint8_t i2cAddress, TwoWire *twi = &Wire, int8_t rst_pin = -1, uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL);
-    Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi = &Wire, int8_t rst_pin = -1, uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL);
+    Adafruit_SSD1306(uint8_t w, uint8_t h, uint8_t i2cAddress,
+#if ADAFRUIT_SSD1306_FIXED_WIRE == 0
+        TwoWire *twi,
+#endif
+        int8_t rst_pin
+#if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+        ,
+        uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL
+#endif
+    );
+
+    Adafruit_SSD1306(uint8_t w, uint8_t h,
+#if ADAFRUIT_SSD1306_FIXED_WIRE == 0
+        TwoWire *twi,
+#endif
+        int8_t rst_pin
+#if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+        ,
+        uint32_t clkDuring = 400000UL, uint32_t clkAfter = 100000UL
+#endif
+    );
 
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     Adafruit_SSD1306(uint8_t w, uint8_t h, int8_t mosi_pin, int8_t sclk_pin, int8_t dc_pin, int8_t rst_pin, int8_t cs_pin);
     Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi, int8_t dc_pin, int8_t rst_pin, int8_t cs_pin, uint32_t bitrate = 8000000UL);
 #endif
-
-    // DEPRECATED CONSTRUCTORS - for back compatibility, avoid in new projects
-    // Adafruit_SSD1306(int8_t mosi_pin, int8_t sclk_pin, int8_t dc_pin, int8_t rst_pin, int8_t cs_pin);
-    // Adafruit_SSD1306(int8_t dc_pin, int8_t rst_pin, int8_t cs_pin);
-    // Adafruit_SSD1306(int8_t rst_pin = -1);
 
 #ifndef ADAFRUIT_SSD1306_NO_DESTRUCTOR
     ~Adafruit_SSD1306(void);
@@ -416,7 +445,16 @@ private:
 #endif
 };
 
-inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi, int8_t rst_pin, uint32_t clkDuring, uint32_t clkAfter) :
+inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
+#if ADAFRUIT_SSD1306_FIXED_WIRE == 0
+    TwoWire *twi,
+#endif
+    int8_t rst_pin
+#if ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+    ,
+    uint32_t clkDuring, uint32_t clkAfter
+#endif
+    ) :
     Adafruit_GFX(w, h),
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     spi(NULL),
@@ -439,7 +477,7 @@ inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, TwoWire *twi, in
 {
 }
 
-#if ADAFRUIT_SSD1306_NO_DESTRUCTOR == 0
+#if ADAFRUIT_SSD1306_NO_DESTRUCTOR == 0 && ADAFRUIT_SSD1306_FIXED_SIZE == 0
 inline Adafruit_SSD1306::~Adafruit_SSD1306(void)
 {
     if (buffer) {
@@ -481,18 +519,16 @@ inline boolean Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, boolean reset,
 
     // Setup pin directions
 #if ADAFRUIT_SSD1306_NO_SPI == 0
-    if (wire)
+    if (__hasWire())
 #endif
     { // Using I2C
-        // If I2C address is unspecified, use default
-        // (0x3C for 32-pixel-tall displays, 0x3D for all others).
-        i2caddr = addr ? addr : ((__height() == 32) ? 0x3C : 0x3D);
         // TwoWire begin() function might be already performed by the calling
         // function if it has unusual circumstances (e.g. TWI variants that
         // can accept different SDA/SCL pins, or if two SSD1306 instances
         // with different addresses -- only a single begin() is needed).
-        if (periphBegin)
+        if (periphBegin) {
             __wire()->begin();
+        }
     }
 #if ADAFRUIT_SSD1306_NO_SPI == 0
     else { // Using one of the SPI modes, either soft or hardware
@@ -672,21 +708,26 @@ inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h,
 #    if ADAFRUIT_SSD1306_FIXED_WIRE == 0
     wire(NULL),
 #    endif
+#    if ADAFRUIT_SSD1306_FIXED_SIZE == 0
     buffer(NULL),
+#    endif
     rstPin(rst_pin),
-    , mosiPin(mosi_pin),
+    mosiPin(mosi_pin),
     clkPin(sclk_pin),
     dcPin(dc_pin),
     csPin(cs_pin)
 {
 }
 
-inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi,
-    int8_t dc_pin, int8_t rst_pin, int8_t cs_pin, uint32_t bitrate) :
+inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi, int8_t dc_pin, int8_t rst_pin, int8_t cs_pin, uint32_t bitrate) :
     Adafruit_GFX(w, h),
     spi(spi ? spi : &SPI),
+#    if ADAFRUIT_SSD1306_FIXED_WIRE == 0
     wire(NULL),
+#    endif
+#    if ADAFRUIT_SSD1306_FIXED_SIZE == 0
     buffer(NULL),
+#    endif
     rstPin(rst_pin),
     mosiPin(-1),
     clkPin(-1),
@@ -696,26 +737,6 @@ inline Adafruit_SSD1306::Adafruit_SSD1306(uint8_t w, uint8_t h, SPIClass *spi,
 #    ifdef SPI_HAS_TRANSACTION
     spiSettings = SPISettings(bitrate, MSBFIRST, SPI_MODE0);
 #    endif
-}
-
-inline Adafruit_SSD1306::Adafruit_SSD1306(int8_t mosi_pin, int8_t sclk_pin,
-    int8_t dc_pin, int8_t rst_pin, int8_t cs_pin) :
-    Adafruit_GFX(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT),
-#    if ADAFRUIT_SSD1306_NO_SPI == 0
-    spi(NULL),
-#    endif
-#    if ADAFRUIT_SSD1306_FIXED_WIRE == 0
-    wire(NULL),
-#    endif
-    buffer(NULL),
-#    if ADAFRUIT_SSD1306_NO_SPI == 0
-    mosiPin(mosi_pin),
-    clkPin(sclk_pin),
-    dcPin(dc_pin),
-    csPin(cs_pin),
-#    endif
-    rstPin(rst_pin)
-{
 }
 
 #endif
@@ -871,7 +892,7 @@ inline void Adafruit_SSD1306::drawPixel(int16_t x, int16_t y, uint16_t color)
         case SSD1306_BLACK:
             buffer[pos] &= ~(1 << (y & 7));
             break;
-#if SSD1306_INVERSE_HAVE_INVERSE
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
         case SSD1306_INVERSE:
             buffer[pos] ^= (1 << (y & 7));
             break;
@@ -1113,7 +1134,7 @@ inline void Adafruit_SSD1306::drawFastHLineInternal(int16_t x, int16_t y, int16_
                     *pBuf++ &= mask;
                 };
                 break;
-#if SSD1306_INVERSE_HAVE_INVERSE
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
             case SSD1306_INVERSE:
                 while (w--) {
                     *pBuf++ ^= mask;
@@ -1216,7 +1237,7 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                 case SSD1306_BLACK:
                     *pBuf &= ~mask;
                     break;
-#if SSD1306_INVERSE_HAVE_INVERSE
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
                 case SSD1306_INVERSE:
                     *pBuf ^= mask;
                     break;
@@ -1229,7 +1250,7 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                 h -= mod;
                 // Write solid bytes while we can - effectively 8 rows at a time
                 if (h >= 8) {
-#if SSD1306_INVERSE_HAVE_INVERSE
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
                     if (color == SSD1306_INVERSE) {
                         // separate copy of the code so we don't impact performance of
                         // black/white write version with an extra comparison per loop
@@ -1267,7 +1288,7 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                     case SSD1306_BLACK:
                         *pBuf &= ~mask;
                         break;
-#if SSD1306_INVERSE_HAVE_INVERSE
+#if ADAFRUIT_SSD1306_HAVE_INVERSE
                     case SSD1306_INVERSE:
                         *pBuf ^= mask;
                         break;

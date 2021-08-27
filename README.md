@@ -1,3 +1,10 @@
+# Modifications
+
+- Optimized for code size
+- Most options can be disabled, compiled in or enabled dynamically
+
+29332
+
 # Adafruit_SSD1306 [![Build Status](https://travis-ci.org/adafruit/Adafruit_SSD1306.svg?branch=master)](https://travis-ci.org/adafruit/Adafruit_SSD1306)
 
 This is a library for our Monochrome OLEDs based on SSD1306 drivers
@@ -20,7 +27,7 @@ You will also have to install the **Adafruit GFX library** which provides graphi
 
 ## Changes
 Pull Request:
-   (September 2019) 
+   (September 2019)
    * new #defines for SSD1306_BLACK, SSD1306_WHITE and SSD1306_INVERSE that match existing #define naming scheme and won't conflict with common color names
    * old #defines for BLACK, WHITE and INVERSE kept for backwards compat (opt-out with #define NO_ADAFRUIT_SSD1306_COLOR_COMPATIBILITY)
 

@@ -35,10 +35,10 @@
  *
  */
 
+#pragma GCC optimize("Os")
+
 #include "Adafruit_SSD1306.h"
 #include <Adafruit_GFX.h>
 #ifdef ADAFRUIT_SSD1306_DISPLAY_SPLASH
 #    include "splash.h"
 #endif
-
-#pragma GCC optimize("Os")
