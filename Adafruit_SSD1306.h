@@ -106,11 +106,6 @@
 #    define ADAFRUIT_SSD1306_FIXED_ROTATION 0
 #endif
 
-// remove color SSD1306_INVERSE
-#ifndef ADAFRUIT_SSD1306_HAVE_INVERSE
-#    define ADAFRUIT_SSD1306_HAVE_INVERSE 0
-#endif
-
 #if defined(ARDUINO_STM32_FEATHER)
 typedef class HardwareSPI SPIClass;
 #endif
@@ -173,22 +168,14 @@ typedef uint32_t PortMask;
 /// They can be disabled by predefining this macro before including the Adafruit header
 /// client code will then need to be modified to use the scoped enum values directly
 #ifndef NO_ADAFRUIT_SSD1306_COLOR_COMPATIBILITY
-#    define BLACK SSD1306_BLACK ///< Draw 'off' pixels
-#    define WHITE SSD1306_WHITE ///< Draw 'on' pixels
-#    if ADAFRUIT_SSD1306_HAVE_INVERSE
-#        define INVERSE SSD1306_INVERSE ///< Invert pixels
-#    else
-#        define INVERSE SSD1306_BLACK
-#    endif
+#    define BLACK   SSD1306_BLACK ///< Draw 'off' pixels
+#    define WHITE   SSD1306_WHITE ///< Draw 'on' pixels
+#    define INVERSE SSD1306_INVERSE ///< Invert pixels
 #endif
 /// fit into the SSD1306_ naming scheme
-#define SSD1306_BLACK 0 ///< Draw 'off' pixels
-#define SSD1306_WHITE 1 ///< Draw 'on' pixels
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
-#    define SSD1306_INVERSE 2 ///< Invert pixels
-#else
-#    define SSD1306_INVERSE 0
-#endif
+#define SSD1306_BLACK   0 ///< Draw 'off' pixels
+#define SSD1306_WHITE   1 ///< Draw 'on' pixels
+#define SSD1306_INVERSE 2 ///< Invert pixels
 
 #define SSD1306_MEMORYMODE          0x20 ///< See datasheet
 #define SSD1306_COLUMNADDR          0x21 ///< See datasheet
@@ -330,8 +317,7 @@ public:
 #if ADAFRUIT_SSD1306_FIXED_VCCSTATE == 0
         uint8_t switchvcc,
 #endif
-        uint8_t i2caddr, boolean reset = true, boolean periphBegin = true
-    );
+        uint8_t i2caddr, boolean reset = true, boolean periphBegin = true);
 
     void display(void);
     void clearDisplay(void);
@@ -902,11 +888,9 @@ inline void Adafruit_SSD1306::drawPixel(int16_t x, int16_t y, uint16_t color)
         case SSD1306_BLACK:
             buffer[pos] &= ~(1 << (y & 7));
             break;
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
         case SSD1306_INVERSE:
             buffer[pos] ^= (1 << (y & 7));
             break;
-#endif
         }
     }
 }
@@ -1144,13 +1128,11 @@ inline void Adafruit_SSD1306::drawFastHLineInternal(int16_t x, int16_t y, int16_
                     *pBuf++ &= mask;
                 };
                 break;
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
             case SSD1306_INVERSE:
                 while (w--) {
                     *pBuf++ ^= mask;
                 };
                 break;
-#endif
             }
         }
     }
@@ -1247,11 +1229,9 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                 case SSD1306_BLACK:
                     *pBuf &= ~mask;
                     break;
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
                 case SSD1306_INVERSE:
                     *pBuf ^= mask;
                     break;
-#endif
                 }
                 pBuf += __width();
             }
@@ -1260,7 +1240,6 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                 h -= mod;
                 // Write solid bytes while we can - effectively 8 rows at a time
                 if (h >= 8) {
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
                     if (color == SSD1306_INVERSE) {
                         // separate copy of the code so we don't impact performance of
                         // black/white write version with an extra comparison per loop
@@ -1269,9 +1248,7 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                             pBuf += __width(); // Advance pointer 8 rows
                             h -= 8; // Subtract 8 rows from height
                         } while (h >= 8);
-                    } else
-#endif
-                    {
+                    } else {
                         // store a local value to work with
                         uint8_t val = (color != SSD1306_BLACK) ? 255 : 0;
                         do {
@@ -1298,11 +1275,9 @@ inline void Adafruit_SSD1306::drawFastVLineInternal(int16_t x, int16_t __y, int1
                     case SSD1306_BLACK:
                         *pBuf &= ~mask;
                         break;
-#if ADAFRUIT_SSD1306_HAVE_INVERSE
                     case SSD1306_INVERSE:
                         *pBuf ^= mask;
                         break;
-#endif
                     }
                 }
             }
