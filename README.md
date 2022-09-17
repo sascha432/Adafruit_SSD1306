@@ -3,7 +3,55 @@
 - Optimized for code size
 - Most options can be disabled, compiled in or enabled dynamically
 
-29332
+``Adafruit_SSD1306.h``
+
+```c++
+// do not include splash screen to safe space
+#ifndef ADAFRUIT_SSD1306_DISPLAY_SPLASH
+#    define ADAFRUIT_SSD1306_DISPLAY_SPLASH 0
+#endif
+
+// support for SSD1306_NO_SPLASH
+#ifdef SSD1306_NO_SPLASH
+#    undef ADAFRUIT_SSD1306_DISPLAY_SPLASH
+#    define ADAFRUIT_SSD1306_DISPLAY_SPLASH 0
+#endif
+
+// remove code for SPI
+#ifndef ADAFRUIT_SSD1306_NO_SPI
+#    define ADAFRUIT_SSD1306_NO_SPI 1
+#endif
+
+// remove destructor from class
+#ifndef ADAFRUIT_SSD1306_NO_DESTRUCTOR
+#    define ADAFRUIT_SSD1306_NO_DESTRUCTOR 1
+#endif
+
+// remove code to change clock speed
+#ifndef ADAFRUIT_SSD1306_WIRE_SET_CLOCK
+#    define ADAFRUIT_SSD1306_WIRE_SET_CLOCK 0
+#endif
+
+// remove code for wire variable and use Wire
+#ifndef ADAFRUIT_SSD1306_FIXED_WIRE
+#    define ADAFRUIT_SSD1306_FIXED_WIRE 1
+#endif
+
+// set fixed vcc state
+#ifndef ADAFRUIT_SSD1306_FIXED_VCCSTATE
+#    define ADAFRUIT_SSD1306_FIXED_VCCSTATE 1
+#endif
+
+// remove variable
+#ifndef ADAFRUIT_SSD1306_VCCSTATE
+#    define ADAFRUIT_SSD1306_VCCSTATE SSD1306_SWITCHCAPVCC
+#endif
+
+// set fixed rotation 0-3 or -1 for reading it from the GFX class
+#ifndef ADAFRUIT_SSD1306_FIXED_ROTATION
+#    define ADAFRUIT_SSD1306_FIXED_ROTATION 0
+#endif
+```
 
 # Adafruit_SSD1306 [![Build Status](https://travis-ci.org/adafruit/Adafruit_SSD1306.svg?branch=master)](https://travis-ci.org/adafruit/Adafruit_SSD1306)
 
